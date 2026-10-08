@@ -46,6 +46,7 @@ export function registerBlocks(plugin: OnePercentDiary): void {
 
 	plugin.registerMarkdownCodeBlockProcessor("1pct-jour", mount((el, file) => drawDay(plugin, el, file)));
 	plugin.registerMarkdownCodeBlockProcessor("1pct-cycle", mount((el, file) => drawCycle(plugin, el, file)));
+	plugin.registerMarkdownCodeBlockProcessor("1pct-semaine", mount((el, file) => drawWeek(plugin, el, file)));
 }
 
 function cycleOf(plugin: OnePercentDiary, file: TFile): Cycle | null {
@@ -68,6 +69,18 @@ function drawDay(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void {
 	const head = el.createDiv({ cls: "opd-day-head" });
 	head.createSpan({ text: `Jour ${n} sur ${cycle.duree} · ` });
 	internalLink(plugin, head, cycle.file, file, "voir le cycle");
+	if (date.isValid()) {
+		head.createSpan({ text: " · " });
+		const week = repo.file(repo.weekPath(date));
+		if (week) internalLink(plugin, head, week, file, "voir la semaine");
+		else {
+			const a = head.createEl("a", { text: "planifier la semaine", href: "#" });
+			a.addEventListener("click", (e) => {
+				e.preventDefault();
+				void plugin.openWeek(cycle, date);
+			});
+		}
+	}
 
 	const pending = repo.pendingMilestone(cycle, n);
 	if (pending !== null) drawMilestone(plugin, el, pending, goals);
@@ -120,6 +133,14 @@ function drawDay(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void {
 			await repo.setDayField(file, slot.key, "texte", text);
 			await repo.addToBank(goal.file, text);
 		});
+		const planned = goal && date.isValid() ? repo.plannedFor(date, goal.file.path) : "";
+		if (planned && planned !== state.texte) {
+			const p = row.createDiv({ cls: "opd-desc" });
+			p.createSpan({ text: `Prévu cette semaine : ${planned} ` });
+			p.createEl("button", { text: "Reprendre", cls: "opd-bank-btn" }).addEventListener("click", () =>
+				void repo.setDayField(file, slot.key, "texte", planned),
+			);
+		}
 		if (goal && goal.banque.length === 0) {
 			row.createDiv({ cls: "opd-hint", text: "Réserve vide pour cet objectif : chaque 1% écrit ici peut l'alimenter." });
 		}
@@ -227,6 +248,68 @@ function drawCycle(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void 
 		const trajet = evals.map(([j, v]) => `${j} : ${v}/10`).join(" → ");
 		row.createSpan({ text: ` · ${totals.parObjectif[g.file.path] ?? 0} pas` + (trajet ? ` · ${trajet}` : "") });
 	}
+}
+
+const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+function drawWeek(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void {
+	const repo = plugin.repo;
+	const cycle = cycleOf(plugin, file);
+	const monday = moment(String(repo.fm(file).lundi ?? ""), DATE_FORMAT, true);
+	if (!cycle || !monday.isValid()) {
+		el.createEl("p", { text: "Propriétés de la semaine incomplètes (cycle, lundi)." });
+		return;
+	}
+	const head = el.createDiv({ cls: "opd-day-head" });
+	head.createSpan({ text: `Semaine du ${monday.format("DD/MM")} · ` });
+	internalLink(plugin, head, cycle.file, file, "voir le cycle");
+	renderGuide(el, "semaine", plugin);
+
+	const goals = repo.goals(cycle);
+	const cols = repo.weekPlan(file);
+	const grid = el.createDiv({ cls: "opd-week" });
+	grid.style.setProperty("--opd-cols", String(cols.length));
+
+	grid.createDiv();
+	for (const col of cols) {
+		grid.createDiv({ cls: "opd-week-goal", text: goals.find((g) => g.file.path === col.goal)?.titre ?? "(objectif)" });
+	}
+
+	let planned = 0;
+	let done = 0;
+	const today = moment().format(DATE_FORMAT);
+	for (let d = 0; d < 7; d++) {
+		const date = monday.clone().add(d, "days");
+		const dayFile = repo.file(repo.dayPath(date));
+		const label = grid.createDiv({ cls: "opd-week-day" + (date.format(DATE_FORMAT) === today ? " is-today" : "") });
+		const text = `${WEEKDAYS[d]} ${date.format("DD/MM")}`;
+		if (dayFile) internalLink(plugin, label, dayFile, file, text);
+		else label.setText(text);
+
+		cols.forEach((col, c) => {
+			const goal = goals.find((g) => g.file.path === col.goal);
+			const isDone =
+				!!dayFile && SLOTS.some((s) => {
+					const st = repo.dayState(dayFile, s.key);
+					return st.fait && st.objectif === col.goal;
+				});
+			if (col.cells[d]) planned++;
+			if (isDone) done++;
+
+			const cell = grid.createDiv({ cls: "opd-week-cell" + (isDone ? " is-done" : "") });
+			const listId = `opd-week-${file.basename}-${c}-${d}`;
+			const input = cell.createEl("input", { attr: { type: "text", list: listId, "aria-label": `${text}, ${goal?.titre ?? ""}` } });
+			input.value = col.cells[d];
+			input.addEventListener("change", () => void repo.setPlanCell(file, c, d, input.value.trim()));
+			const datalist = cell.createEl("datalist", { attr: { id: listId } });
+			for (const idea of goal?.banque ?? []) datalist.createEl("option", { value: idea });
+			if (isDone) cell.createSpan({ cls: "opd-week-check", text: "✓", attr: { "aria-label": "Fait" } });
+		});
+	}
+
+	const foot = el.createDiv({ cls: "opd-foot" });
+	foot.createSpan({ text: `${planned} petit(s) pas prévu(s)` });
+	foot.createSpan({ text: `${done} tenu(s) cette semaine` });
 }
 
 function stat(parent: HTMLElement, value: string, label: string): void {

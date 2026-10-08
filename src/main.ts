@@ -23,6 +23,7 @@ export default class OnePercentDiary extends Plugin {
 		this.addCommand({ id: "vision", name: "Écrire ou revoir mon pourquoi", callback: () => new VisionModal(this).open() });
 		this.addCommand({ id: "objectifs", name: "Définir ou ajuster mes 3 objectifs", callback: () => new GoalsModal(this).open() });
 		this.addCommand({ id: "jour", name: "Ouvrir la note du jour", callback: () => void this.openToday() });
+		this.addCommand({ id: "semaine", name: "Planifier ma semaine", callback: () => void this.openWeek() });
 		this.addCommand({ id: "cycle", name: "Ouvrir le cycle en cours", callback: () => void this.openCycle() });
 	}
 
@@ -34,7 +35,11 @@ export default class OnePercentDiary extends Plugin {
 		}
 		if (!this.repo.cycleAt(moment())) {
 			// Les notes tout juste créées ne sont pas encore indexées : on transmet le cycle.
-			new GoalsModal(this, (cycle, goals) => void this.openToday(cycle, goals)).open();
+			new GoalsModal(this, (cycle, goals) => void this.openWeek(cycle, moment(), goals)).open();
+			return;
+		}
+		if (!this.repo.file(this.repo.weekPath(moment()))) {
+			await this.openWeek();
 			return;
 		}
 		await this.openToday();
@@ -47,6 +52,16 @@ export default class OnePercentDiary extends Plugin {
 			return;
 		}
 		const file = await this.repo.openOrCreateDay(cycle, moment(), goals);
+		await this.app.workspace.getLeaf(false).openFile(file);
+	}
+
+	async openWeek(known?: Cycle, date = moment(), goals?: TFile[]): Promise<void> {
+		const cycle = known ?? this.repo.cycleAt(date);
+		if (!cycle) {
+			new Notice("Aucun cycle en cours : commence par définir tes 3 objectifs.");
+			return;
+		}
+		const file = await this.repo.openOrCreateWeek(cycle, date, goals);
 		await this.app.workspace.getLeaf(false).openFile(file);
 	}
 

@@ -59,6 +59,10 @@ export class DiaryRepo {
 		return this.path("Vision.md");
 	}
 
+	weekPath(date: moment.Moment): string {
+		return this.path("Semaines", `${date.format("GGGG-[S]WW")}.md`);
+	}
+
 	dayPath(date: moment.Moment): string {
 		return this.path("Jours", `${date.format(DATE_FORMAT)}.md`);
 	}
@@ -279,11 +283,67 @@ export class DiaryRepo {
 			SLOTS.forEach((slot, i) => {
 				const goal = goals[i];
 				fm[`${slot.key}_objectif`] ??= goal ? this.link(goal, file.path) : "";
-				fm[`${slot.key}_texte`] ??= "";
+				fm[`${slot.key}_texte`] ??= goal ? this.plannedFor(date, goal.path) : "";
 				fm[`${slot.key}_fait`] ??= false;
 			});
 		});
 		return file;
+	}
+
+	// --- Semaines -------------------------------------------------------------
+
+	/** Note de la semaine ISO (lundi-dimanche) contenant la date, créée et initialisée au besoin. */
+	async openOrCreateWeek(cycle: Cycle, date: moment.Moment, goalFiles?: TFile[]): Promise<TFile> {
+		const path = this.weekPath(date);
+		const monday = date.clone().startOf("isoWeek");
+		const file =
+			this.file(path) ??
+			(await this.create(
+				path,
+				`# Semaine du ${monday.format("DD/MM/YYYY")}\n\n\`\`\`1pct-semaine\n\`\`\`\n\n## Intentions\n\n`,
+			));
+		const goals = goalFiles ?? this.goals(cycle).map((g) => g.file);
+		await this.app.fileManager.processFrontMatter(file, (fm: Frontmatter) => {
+			if (fm.type === "semaine") return;
+			fm.type = "semaine";
+			fm.cycle = this.link(cycle.file, file.path);
+			fm.lundi = monday.format(DATE_FORMAT);
+			goals.slice(0, SLOTS.length).forEach((g, i) => {
+				fm[`objectif_${i + 1}`] = this.link(g, file.path);
+				fm[`plan_${i + 1}`] = Array(7).fill("");
+			});
+		});
+		return file;
+	}
+
+	/** Colonnes de la grille : chemin de l'objectif et 7 cases (lundi en premier). */
+	weekPlan(week: TFile): { goal: string; cells: string[] }[] {
+		const fm = this.fm(week);
+		const cols: { goal: string; cells: string[] }[] = [];
+		for (let i = 1; fm[`objectif_${i}`] !== undefined; i++) {
+			const raw = Array.isArray(fm[`plan_${i}`]) ? (fm[`plan_${i}`] as unknown[]) : [];
+			const cells = Array.from({ length: 7 }, (_, d) => (raw[d] == null ? "" : String(raw[d])));
+			cols.push({ goal: this.resolve(fm[`objectif_${i}`], week.path)?.path ?? "", cells });
+		}
+		return cols;
+	}
+
+	/** Ce qui était prévu dans la grille de la semaine pour cet objectif ce jour-là, ou "". */
+	plannedFor(date: moment.Moment, goalPath: string): string {
+		const week = this.file(this.weekPath(date));
+		if (!week) return "";
+		const col = this.weekPlan(week).find((c) => c.goal === goalPath);
+		return col?.cells[date.isoWeekday() - 1] ?? "";
+	}
+
+	async setPlanCell(week: TFile, col: number, day: number, text: string): Promise<void> {
+		await this.app.fileManager.processFrontMatter(week, (fm: Frontmatter) => {
+			const key = `plan_${col + 1}`;
+			const cells = Array.isArray(fm[key]) ? [...(fm[key] as unknown[])] : [];
+			while (cells.length < 7) cells.push("");
+			cells[day] = text;
+			fm[key] = cells.map((c) => (c == null ? "" : String(c)));
+		});
 	}
 
 	/** `objectif` est le chemin de la note d'objectif liée, ou "" si aucune. */

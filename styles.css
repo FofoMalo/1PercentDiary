@@ -176,3 +176,42 @@
 .opd-open-question p {
 	margin: 2px 0 8px;
 }
+
+/* Semaine */
+.opd-week {
+	display: grid;
+	grid-template-columns: minmax(70px, auto) repeat(var(--opd-cols, 3), minmax(0, 1fr));
+	gap: 4px;
+	align-items: center;
+	margin-bottom: 8px;
+}
+.opd-week-goal {
+	font-weight: var(--font-semibold);
+	font-size: var(--font-ui-small);
+}
+.opd-week-day {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+.opd-week-day.is-today {
+	color: var(--text-normal);
+	font-weight: var(--font-bold);
+}
+.opd-week-cell {
+	position: relative;
+}
+.opd-week-cell input {
+	width: 100%;
+}
+.opd-week-cell.is-done input {
+	background: var(--background-secondary);
+	padding-right: 1.6em;
+}
+.opd-week-check {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--interactive-accent);
+	font-weight: var(--font-bold);
+}

@@ -60,14 +60,16 @@ Propriétés principales (provisoires) :
 - **Cycle** : `type: cycle`, `debut`, `duree_jours`, `objectifs: [[[Sommeil]], ...]`.
 - **Objectif** : `type: objectif`, `cycle`, `rang`, `pourquoi`, `mesure`, `evaluations` (une valeur 1-10 par jalon), `banque` (liste des 1% possibles).
 - **Jour** : `type: jour`, `cycle`, `jour_n`, et à plat pour chaque case (`nn_`, `boost_`, `bonus_`) : `_texte`, `_objectif` (lien), `_fait` (booléen). Pas de cases à cocher `- [ ]` pour les 1%, pour ne pas polluer les requêtes Obsidian Tasks du vault.
-- **Semaine** : `type: semaine`, `cycle`, le plan des 7 jours.
+- **Semaine** (`Semaines/GGGG-SWW.md`, semaine ISO lundi-dimanche) : `type: semaine`, `cycle`, `lundi`, puis par colonne `objectif_i` (lien, figé à la création) et `plan_i` (liste de 7 textes, lundi en premier). La note du jour reprend la case prévue à sa création ; sinon elle propose « Reprendre ».
 - **Revue** : `type: revue`, `periode`, `total_1pct` ; réponses dans le corps.
 
 ## 5. Découpage
 
 **MVP** : réglages (dossier, durée de cycle), assistant Vision, assistant 3 objectifs (pourquoi, mesure, évaluation de départ, banque), note du jour (non négociable / boost / bonus + total en cours).
 
-**Ensuite** : grille de la semaine, revue hebdo, bilans de jalon, vue du cycle, panneau « prochaine étape ».
+**Fait depuis** : bilans de jalon (note 1-10 par objectif, retour au pourquoi), vue du cycle, grille de la semaine, réserve alimentée depuis la note du jour.
+
+**Ensuite** : revue hebdo (total des 1%, ce qui a marché, ce qui aurait pu être mieux).
 
 ## 6. Questions ouvertes
 

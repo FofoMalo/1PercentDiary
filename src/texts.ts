@@ -42,6 +42,15 @@ export const GUIDES: Record<string, Guide> = {
 			"Un jour manqué n'efface rien : demain, tu reprends simplement là où tu t'es arrêté.",
 		],
 	},
+	semaine: {
+		title: "Planifier ta semaine",
+		short: "Un petit pas par objectif et par jour : décidé à l'avance, il ne reste qu'à le faire.",
+		body: [
+			"Prends quelques minutes en début de semaine pour répartir tes 1%. Chaque jour, la note du jour reprendra ce que tu as prévu.",
+			"Toutes les cases n'ont pas besoin d'être remplies : certains jours n'auront pas la place pour les trois objectifs, et c'est normal.",
+			"Les cases cochées dans tes notes du jour apparaissent ici : tu vois ta semaine se construire.",
+		],
+	},
 	bilan: {
 		title: "Le temps d'un bilan",
 		short: "Note où tu en es, puis relis ton pourquoi : est-ce que c'est assez ?",
