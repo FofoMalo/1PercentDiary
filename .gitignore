@@ -1,0 +1,6 @@
+# Photos du carnet (référence privée)
+*.jpg
+node_modules/
+main.js
+test-vault/
+.vscode/

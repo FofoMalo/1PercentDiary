@@ -1,0 +1,9 @@
+{
+	"id": "one-percent-diary",
+	"name": "1% Diary",
+	"version": "0.1.0",
+	"minAppVersion": "1.7.2",
+	"description": "Progresser de 1% par jour : vision, objectifs alignés, engagement quotidien.",
+	"author": "Florent",
+	"isDesktopOnly": false
+}
