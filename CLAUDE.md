@@ -18,6 +18,13 @@ npm run install-test   # copie main.js, manifest.json, styles.css dans test-vaul
 node scripts/install.mjs <vault>   # installer dans un autre vault
 ```
 
+Publier une version (installable par BRAT avec `FofoMalo/1PercentDiary`) :
+
+```bash
+npm version patch      # ou minor : met à jour package.json, manifest.json, versions.json, commit + tag sans "v"
+git push --follow-tags # le tag déclenche .github/workflows/release.yml, qui crée la release avec les 3 fichiers
+```
+
 Pas de tests automatisés : on vérifie dans Obsidian (flatpak `md.obsidian.Obsidian`) en ouvrant `test-vault/` (ignoré par git), puis en rechargeant le plugin.
 
 ## Vault cible
