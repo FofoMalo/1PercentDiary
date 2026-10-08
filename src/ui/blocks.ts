@@ -98,6 +98,24 @@ function drawDay(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void {
 		const goal = goals.find((g) => g.file.path === state.objectif);
 		for (const idea of goal?.banque ?? []) datalist.createEl("option", { value: idea });
 
+		// La réserve se construit au fil des jours : un 1% nouveau peut y être versé d'un clic.
+		const inBank = (t: string) => !!goal?.banque.some((b) => b.toLowerCase() === t.trim().toLowerCase());
+		const save = line.createEl("button", { text: "+ réserve", cls: "opd-bank-btn", attr: { "aria-label": "Ajouter ce 1% à la réserve de l'objectif" } });
+		const refresh = () => save.toggle(!!goal && !!input.value.trim() && !inBank(input.value));
+		refresh();
+		input.addEventListener("input", refresh);
+		// Sans cela, le blur du champ écrit la note et le redessin du bloc peut avaler le clic.
+		save.addEventListener("mousedown", (e) => e.preventDefault());
+		save.addEventListener("click", async () => {
+			if (!goal) return;
+			const text = input.value.trim();
+			await repo.setDayField(file, slot.key, "texte", text);
+			await repo.addToBank(goal.file, text);
+		});
+		if (goal && goal.banque.length === 0) {
+			row.createDiv({ cls: "opd-hint", text: "Réserve vide pour cet objectif : chaque 1% écrit ici peut l'alimenter." });
+		}
+
 		if (goal?.pourquoi) row.createDiv({ cls: "opd-why", text: `Pourquoi : ${goal.pourquoi}` });
 	}
 

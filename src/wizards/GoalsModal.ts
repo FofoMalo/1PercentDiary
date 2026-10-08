@@ -1,4 +1,5 @@
 import { Modal, Notice, Setting, TFile, moment } from "obsidian";
+import { looksMeasurable } from "../repository";
 import type OnePercentDiary from "../main";
 import type { Cycle } from "../repository";
 import { VISION_QUESTIONS } from "../texts";
@@ -9,7 +10,8 @@ interface GoalDraft {
 	titre: string;
 	pourquoi: string;
 	mesure: string;
-	evaluation: number;
+	/** null tant que l'utilisateur n'a pas choisi : pas de valeur par défaut silencieuse. */
+	evaluation: number | null;
 	banque: string;
 }
 
@@ -41,7 +43,7 @@ export class GoalsModal extends Modal {
 				titre: g?.titre ?? "",
 				pourquoi: g?.pourquoi ?? "",
 				mesure: g?.mesure ?? "",
-				evaluation: g?.evaluations.J0 ?? 5,
+				evaluation: g?.evaluations.J0 ?? null,
 				banque: (g?.banque ?? []).join("\n"),
 			});
 		}
@@ -97,32 +99,57 @@ export class GoalsModal extends Modal {
 
 		this.field("Objectif", "Ce que tu veux atteindre, en une phrase.", d.titre, (v) => (d.titre = v), false);
 		this.field("Mon pourquoi", "En quoi cet objectif sert ta vision ?", d.pourquoi, (v) => (d.pourquoi = v));
-		this.field("Mesure du succès", "Ce que tu pourras observer pour savoir que tu avances.", d.mesure, (v) => (d.mesure = v));
+		const mesure = this.field(
+			"Mesure du succès",
+			`Que verras-tu concrètement au jour ${this.duree} ? Une mesure se vérifie par oui ou non, souvent avec un chiffre.`,
+			d.mesure,
+			(v) => {
+				d.mesure = v;
+				hint.toggle(!!v.trim() && !looksMeasurable(v));
+			},
+			true,
+			"Ex. : 3 moments de jeu sans écran par semaine ; 500 € épargnés",
+		);
+		const hint = mesure.createDiv({
+			cls: "opd-hint",
+			text: "Cela ressemble à un thème plutôt qu'à une mesure : combien, à quelle fréquence, ou quel résultat visible ?",
+		});
+		hint.toggle(!!d.mesure.trim() && !looksMeasurable(d.mesure));
 
-		new Setting(el)
-			.setName("Ligne de départ")
-			.setDesc("De 1 à 10, où en es-tu aujourd'hui ?")
-			.addSlider((s) =>
-				s
-					.setLimits(1, 10, 1)
-					.setValue(d.evaluation)
-					.setDynamicTooltip()
-					.onChange((v) => (d.evaluation = v)),
-			);
+		const scale = el.createDiv({ cls: "opd-field" });
+		scale.createEl("label", { text: "Ligne de départ" });
+		scale.createEl("div", { cls: "opd-desc", text: "De 1 à 10, où en es-tu vraiment aujourd'hui ? Pas de bonne réponse, juste un point de départ honnête." });
+		const row = scale.createDiv({ cls: "opd-scale" });
+		for (let n = 1; n <= 10; n++) {
+			const b = row.createEl("button", { text: String(n), cls: d.evaluation === n ? "is-selected" : "" });
+			b.addEventListener("click", () => {
+				d.evaluation = n;
+				row.querySelectorAll("button").forEach((x) => x.removeClass("is-selected"));
+				b.addClass("is-selected");
+			});
+		}
 
 		if (i === 0) renderGuide(el, "banque", this.plugin);
 		this.field("Mes 1% possibles", "Un petit pas par ligne.", d.banque, (v) => (d.banque = v));
 	}
 
-	private field(name: string, desc: string, value: string, set: (v: string) => void, multiline = true): void {
+	private field(
+		name: string,
+		desc: string,
+		value: string,
+		set: (v: string) => void,
+		multiline = true,
+		placeholder = "",
+	): HTMLElement {
 		const wrap = this.contentEl.createDiv({ cls: "opd-field" });
 		wrap.createEl("label", { text: name });
 		wrap.createEl("div", { cls: "opd-desc", text: desc });
 		const input = multiline
-			? wrap.createEl("textarea", { cls: "opd-textarea", attr: { rows: "3" } })
-			: wrap.createEl("input", { attr: { type: "text" } });
+			? wrap.createEl("textarea", { cls: "opd-textarea", attr: { rows: "3", placeholder } })
+			: wrap.createEl("input", { attr: { type: "text", placeholder } });
 		input.value = value;
 		input.addEventListener("input", () => set(input.value));
+		return wrap;
 	}
 
 	private renderRecap(): void {
@@ -133,7 +160,14 @@ export class GoalsModal extends Modal {
 			box.createEl("strong", { text: `${i + 1}. ${d.titre || "(sans titre)"}` });
 			box.createEl("p", { text: `Pourquoi : ${d.pourquoi || "-"}` });
 			box.createEl("p", { text: `Mesure : ${d.mesure || "-"}` });
-			box.createEl("p", { text: `Départ : ${d.evaluation}/10 · ${this.lines(d.banque).length} idée(s) de 1%` });
+			if (d.mesure.trim() && !looksMeasurable(d.mesure)) {
+				box.createEl("p", { cls: "opd-hint", text: "Cette mesure sera-t-elle vérifiable au bilan ?" });
+			}
+			const idees = this.lines(d.banque).length;
+			box.createEl("p", { text: `Départ : ${d.evaluation}/10 · ${idees} idée(s) de 1%` });
+			if (idees === 0) {
+				box.createEl("p", { cls: "opd-hint", text: "Réserve vide : tu pourras l'alimenter depuis la note du jour." });
+			}
 		});
 	}
 
@@ -147,8 +181,13 @@ export class GoalsModal extends Modal {
 		}
 		const last = this.step === GOAL_COUNT + 1;
 		nav.createEl("button", { text: last ? "Enregistrer" : "Suivant", cls: "mod-cta" }).addEventListener("click", () => {
-			if (this.step >= 1 && this.step <= GOAL_COUNT && !this.drafts[this.step - 1].titre.trim()) {
+			const d = this.step >= 1 && this.step <= GOAL_COUNT ? this.drafts[this.step - 1] : null;
+			if (d && !d.titre.trim()) {
 				new Notice("Donne un titre à cet objectif.");
+				return;
+			}
+			if (d && d.evaluation === null) {
+				new Notice("Choisis ta ligne de départ, de 1 à 10.");
 				return;
 			}
 			if (!last) {
@@ -176,7 +215,7 @@ export class GoalsModal extends Modal {
 					pourquoi: d.pourquoi.trim(),
 					mesure: d.mesure.trim(),
 					banque: this.lines(d.banque),
-					evaluation: d.evaluation,
+					evaluation: d.evaluation ?? undefined,
 				}),
 			);
 		}

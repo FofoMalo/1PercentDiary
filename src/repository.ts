@@ -34,6 +34,11 @@ export function linkTarget(value: unknown): string {
 	return value.replace(/^\[\[/, "").replace(/\]\]$/, "").split("|")[0].split("#")[0].trim();
 }
 
+/** Heuristique douce : une mesure vérifiable contient en général un chiffre ou une fréquence. */
+export function looksMeasurable(text: string): boolean {
+	return /\d|fois|par (jour|semaine|mois|an)|chaque|tous les|toutes les/i.test(text);
+}
+
 function sanitize(name: string): string {
 	return name.replace(/[\\/:*?"<>|#^[\]]/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -300,6 +305,17 @@ export class DiaryRepo {
 		}
 		await this.app.fileManager.processFrontMatter(file, (fm: Frontmatter) => {
 			fm[`${slot}_${field}`] = stored;
+		});
+	}
+
+	/** Ajoute une idée à la réserve d'un objectif, sans doublon. */
+	async addToBank(goal: TFile, idea: string): Promise<void> {
+		const text = idea.trim();
+		if (!text) return;
+		await this.app.fileManager.processFrontMatter(goal, (fm: Frontmatter) => {
+			const banque = Array.isArray(fm.banque) ? fm.banque.map(String) : [];
+			if (!banque.some((b) => b.toLowerCase() === text.toLowerCase())) banque.push(text);
+			fm.banque = banque;
 		});
 	}
 

@@ -142,3 +142,25 @@
 .opd-goal {
 	margin: 4px 0;
 }
+
+.opd-hint {
+	margin-top: 4px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-warning);
+}
+.opd-scale {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 6px;
+}
+.opd-scale button {
+	min-width: 2.2em;
+}
+.opd-scale button.is-selected {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+.opd-bank-btn {
+	font-size: var(--font-ui-smaller);
+}
