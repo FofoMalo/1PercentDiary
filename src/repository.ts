@@ -1,6 +1,6 @@
 import { App, TFile, TFolder, moment, normalizePath } from "obsidian";
 import type { DiarySettings } from "./settings";
-import { SLOTS, SlotKey } from "./texts";
+import { REVIEW_SECTIONS, SLOTS, SlotKey } from "./texts";
 
 export const DATE_FORMAT = "YYYY-MM-DD";
 
@@ -343,6 +343,48 @@ export class DiaryRepo {
 			while (cells.length < 7) cells.push("");
 			cells[day] = text;
 			fm[key] = cells.map((c) => (c == null ? "" : String(c)));
+		});
+	}
+
+	/** 1% tenus sur les 7 jours commençant au lundi donné, au total et par chemin d'objectif. */
+	weekTotals(monday: moment.Moment): { total: number; jours: number; parObjectif: Record<string, number> } {
+		const parObjectif: Record<string, number> = {};
+		let total = 0;
+		let jours = 0;
+		for (let d = 0; d < 7; d++) {
+			const file = this.file(this.dayPath(monday.clone().add(d, "days")));
+			if (!file) continue;
+			let any = false;
+			for (const slot of SLOTS) {
+				const s = this.dayState(file, slot.key);
+				if (!s.fait) continue;
+				total++;
+				any = true;
+				if (s.objectif) parObjectif[s.objectif] = (parObjectif[s.objectif] ?? 0) + 1;
+			}
+			if (any) jours++;
+		}
+		return { total, jours, parObjectif };
+	}
+
+	reviewDone(week: TFile): boolean {
+		return this.fm(week).revue_faite === true;
+	}
+
+	/** Ajoute à la note de semaine le bloc de revue et les questions, s'ils manquent. */
+	async ensureReview(week: TFile): Promise<void> {
+		await this.app.vault.process(week, (text) => {
+			if (text.includes("```1pct-revue")) return text;
+			const questions = REVIEW_SECTIONS.map((h) => `### ${h}\n\n`).join("");
+			return `${text.trimEnd()}\n\n## Revue de la semaine\n\n\`\`\`1pct-revue\n\`\`\`\n\n${questions}`;
+		});
+	}
+
+	async closeReview(week: TFile, total: number): Promise<void> {
+		await this.app.fileManager.processFrontMatter(week, (fm: Frontmatter) => {
+			fm.revue_faite = true;
+			fm.revue_le = moment().format(DATE_FORMAT);
+			fm.total_1pct = total;
 		});
 	}
 

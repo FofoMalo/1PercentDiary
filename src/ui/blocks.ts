@@ -47,6 +47,7 @@ export function registerBlocks(plugin: OnePercentDiary): void {
 	plugin.registerMarkdownCodeBlockProcessor("1pct-jour", mount((el, file) => drawDay(plugin, el, file)));
 	plugin.registerMarkdownCodeBlockProcessor("1pct-cycle", mount((el, file) => drawCycle(plugin, el, file)));
 	plugin.registerMarkdownCodeBlockProcessor("1pct-semaine", mount((el, file) => drawWeek(plugin, el, file)));
+	plugin.registerMarkdownCodeBlockProcessor("1pct-revue", mount((el, file) => drawReview(plugin, el, file)));
 }
 
 function cycleOf(plugin: OnePercentDiary, file: TFile): Cycle | null {
@@ -72,8 +73,17 @@ function drawDay(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void {
 	if (date.isValid()) {
 		head.createSpan({ text: " · " });
 		const week = repo.file(repo.weekPath(date));
-		if (week) internalLink(plugin, head, week, file, "voir la semaine");
-		else {
+		if (week) {
+			internalLink(plugin, head, week, file, "voir la semaine");
+			if (date.isoWeekday() === 7 && !repo.reviewDone(week)) {
+				head.createSpan({ text: " · " });
+				const a = head.createEl("a", { text: "faire la revue", href: "#" });
+				a.addEventListener("click", (e) => {
+					e.preventDefault();
+					void plugin.openReview(date);
+				});
+			}
+		} else {
 			const a = head.createEl("a", { text: "planifier la semaine", href: "#" });
 			a.addEventListener("click", (e) => {
 				e.preventDefault();
@@ -310,6 +320,55 @@ function drawWeek(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void {
 	const foot = el.createDiv({ cls: "opd-foot" });
 	foot.createSpan({ text: `${planned} petit(s) pas prévu(s)` });
 	foot.createSpan({ text: `${done} tenu(s) cette semaine` });
+}
+
+function drawReview(plugin: OnePercentDiary, el: HTMLElement, file: TFile): void {
+	const repo = plugin.repo;
+	const cycle = cycleOf(plugin, file);
+	const monday = moment(String(repo.fm(file).lundi ?? ""), DATE_FORMAT, true);
+	if (!cycle || !monday.isValid()) {
+		el.createEl("p", { text: "Propriétés de la semaine incomplètes (cycle, lundi)." });
+		return;
+	}
+	renderGuide(el, "revue", plugin);
+
+	const totals = repo.weekTotals(monday);
+	const previous = repo.weekTotals(monday.clone().subtract(7, "days"));
+	const stats = el.createDiv({ cls: "opd-stats" });
+	stat(stats, String(totals.total), "pas de 1% tenus");
+	stat(stats, `${totals.jours}/7`, "jours avec au moins un 1%");
+	if (previous.total > 0) stat(stats, String(previous.total), "la semaine précédente");
+
+	const goalsEl = el.createDiv({ cls: "opd-goals" });
+	for (const g of repo.goals(cycle)) {
+		const count = totals.parObjectif[g.file.path] ?? 0;
+		const row = goalsEl.createDiv({ cls: "opd-goal" });
+		row.createEl("strong", { text: g.titre });
+		row.createSpan({ text: ` · ${count} pas` });
+		if (count === 0) {
+			row.createDiv({
+				cls: "opd-hint",
+				text: "Aucun pas cette semaine : est-il toujours prioritaire, ou le petit pas était-il trop grand ?",
+			});
+		}
+	}
+
+	const foot = el.createDiv({ cls: "opd-foot" });
+	if (repo.reviewDone(file)) {
+		foot.createSpan({ text: `Revue faite le ${moment(String(repo.fm(file).revue_le), DATE_FORMAT).format("DD/MM")}` });
+	} else {
+		foot.createEl("button", { text: "Clôturer la semaine", cls: "mod-cta" }).addEventListener("click", () =>
+			void repo.closeReview(file, totals.total),
+		);
+	}
+	const nextMonday = monday.clone().add(7, "days");
+	const nextWeek = repo.file(repo.weekPath(nextMonday));
+	if (nextWeek) internalLink(plugin, foot, nextWeek, file, "Semaine suivante");
+	else {
+		foot.createEl("button", { text: "Planifier la semaine suivante" }).addEventListener("click", () =>
+			void plugin.openWeek(undefined, nextMonday),
+		);
+	}
 }
 
 function stat(parent: HTMLElement, value: string, label: string): void {

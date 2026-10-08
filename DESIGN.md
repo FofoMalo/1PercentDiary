@@ -61,7 +61,7 @@ Propriétés principales (provisoires) :
 - **Objectif** : `type: objectif`, `cycle`, `rang`, `pourquoi`, `mesure`, `evaluations` (une valeur 1-10 par jalon), `banque` (liste des 1% possibles).
 - **Jour** : `type: jour`, `cycle`, `jour_n`, et à plat pour chaque case (`nn_`, `boost_`, `bonus_`) : `_texte`, `_objectif` (lien), `_fait` (booléen). Pas de cases à cocher `- [ ]` pour les 1%, pour ne pas polluer les requêtes Obsidian Tasks du vault.
 - **Semaine** (`Semaines/GGGG-SWW.md`, semaine ISO lundi-dimanche) : `type: semaine`, `cycle`, `lundi`, puis par colonne `objectif_i` (lien, figé à la création) et `plan_i` (liste de 7 textes, lundi en premier). La note du jour reprend la case prévue à sa création ; sinon elle propose « Reprendre ».
-- **Revue** : `type: revue`, `periode`, `total_1pct` ; réponses dans le corps.
+- **Revue de la semaine** : dans la note de semaine elle-même (section ajoutée à la demande, bloc `1pct-revue` + questions en `###`). Clôturer fige `revue_faite`, `revue_le`, `total_1pct` ; les réponses restent dans le corps.
 
 ## 5. Découpage
 
@@ -69,7 +69,7 @@ Propriétés principales (provisoires) :
 
 **Fait depuis** : bilans de jalon (note 1-10 par objectif, retour au pourquoi), vue du cycle, grille de la semaine, réserve alimentée depuis la note du jour.
 
-**Ensuite** : revue hebdo (total des 1%, ce qui a marché, ce qui aurait pu être mieux).
+**Fait aussi** : revue de la semaine (totaux calculés, objectif sans pas signalé, clôture puis planification de la suivante), proposée par « Prochaine étape » le dimanche et tant que la semaine précédente n'est pas revue.
 
 ## 6. Questions ouvertes
 

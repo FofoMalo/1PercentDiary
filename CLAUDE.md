@@ -29,7 +29,7 @@ Le vault réel est PersonalOS (`~/SynologyDrive/PersonalOS`) : **sans git**, syn
 - `src/main.ts` : enregistre les commandes, l'icône du ruban et les blocs de code. `nextStep()` fait le parcours guidé : vision, puis objectifs, puis note du jour.
 - `src/repository.ts` (`DiaryRepo`) : **seul** point d'accès aux notes. Chemins, lecture du frontmatter via `metadataCache`, écriture via `app.fileManager.processFrontMatter`.
 - `src/wizards/` : modales pas à pas (`VisionModal`, `GoalsModal`). `GoalsModal` ajuste le cycle en cours s'il existe, sinon en crée un qui commence aujourd'hui.
-- `src/ui/blocks.ts` : blocs de code ` ```1pct-jour``` ` (note du jour), ` ```1pct-semaine``` ` (grille de la semaine) et ` ```1pct-cycle``` ` (note de cycle), insérés dans les notes générées. Chaque bloc est un `MarkdownRenderChild` qui se redessine sur `metadataCache.on("changed")` pour sa note. Les champs texte écrivent sur `change`, pas sur `input`, sinon la re-rendu ferait perdre le focus.
+- `src/ui/blocks.ts` : blocs de code ` ```1pct-jour``` ` (note du jour), ` ```1pct-semaine``` ` (grille de la semaine), ` ```1pct-revue``` ` (revue, dans la note de semaine) et ` ```1pct-cycle``` ` (note de cycle), insérés dans les notes générées. Chaque bloc est un `MarkdownRenderChild` qui se redessine sur `metadataCache.on("changed")` pour sa note. Les champs texte écrivent sur `change`, pas sur `input`, sinon la re-rendu ferait perdre le focus.
 - `src/ui/guide.ts` + `src/texts.ts` : cartes d'explication. Elles sont complètes à la première lecture puis réduites à un rappel, et les clés lues sont stockées dans `settings.seenGuides`.
 
 ## Règles du modèle de données

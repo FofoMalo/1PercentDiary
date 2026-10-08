@@ -51,6 +51,15 @@ export const GUIDES: Record<string, Guide> = {
 			"Les cases cochées dans tes notes du jour apparaissent ici : tu vois ta semaine se construire.",
 		],
 	},
+	revue: {
+		title: "Regarder ta semaine",
+		short: "On regarde ce qui a été fait, on garde ce qui marche, on ajuste le reste.",
+		body: [
+			"Quelques minutes suffisent. Les chiffres ci-dessous sont un repère, pas une note : une semaine plus calme fait aussi partie du chemin.",
+			"Réponds aux questions juste en dessous, avec tes mots. Ce que tu retiens nourrit la planification de la semaine suivante.",
+			"Un objectif resté sans pas n'est pas un échec : c'est une information. Est-il toujours prioritaire, ou le petit pas était-il trop grand ?",
+		],
+	},
 	bilan: {
 		title: "Le temps d'un bilan",
 		short: "Note où tu en es, puis relis ton pourquoi : est-ce que c'est assez ?",
@@ -76,6 +85,13 @@ export const SLOTS = [
 ] as const;
 
 export type SlotKey = (typeof SLOTS)[number]["key"];
+
+export const REVIEW_SECTIONS = [
+	"Ma semaine en quelques mots",
+	"Ce qui m'a fait avancer",
+	"Ce que je ferais autrement",
+	"Ce que je garde pour la semaine prochaine",
+];
 
 export const VISION_QUESTIONS = [
 	{ key: "motivation", heading: "Ce qui me motive chaque jour", placeholder: "Qu'est-ce qui me fait continuer, même les jours difficiles ?" },

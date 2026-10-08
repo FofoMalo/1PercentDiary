@@ -24,10 +24,11 @@ export default class OnePercentDiary extends Plugin {
 		this.addCommand({ id: "objectifs", name: "Définir ou ajuster mes 3 objectifs", callback: () => new GoalsModal(this).open() });
 		this.addCommand({ id: "jour", name: "Ouvrir la note du jour", callback: () => void this.openToday() });
 		this.addCommand({ id: "semaine", name: "Planifier ma semaine", callback: () => void this.openWeek() });
+		this.addCommand({ id: "revue", name: "Faire la revue de la semaine", callback: () => void this.openReview() });
 		this.addCommand({ id: "cycle", name: "Ouvrir le cycle en cours", callback: () => void this.openCycle() });
 	}
 
-	/** Le parcours guidé : vision, puis objectifs, puis la note du jour. */
+	/** Le parcours guidé : vision, objectifs, revue en attente, plan de la semaine, puis la note du jour. */
 	async nextStep(): Promise<void> {
 		if (!this.repo.vision()) {
 			new VisionModal(this, () => void this.nextStep()).open();
@@ -38,7 +39,18 @@ export default class OnePercentDiary extends Plugin {
 			new GoalsModal(this, (cycle, goals) => void this.openWeek(cycle, moment(), goals)).open();
 			return;
 		}
-		if (!this.repo.file(this.repo.weekPath(moment()))) {
+		// Revue de la semaine écoulée d'abord, puis celle de la semaine en cours le dimanche.
+		const lastWeek = this.repo.file(this.repo.weekPath(moment().subtract(7, "days")));
+		if (lastWeek && !this.repo.reviewDone(lastWeek)) {
+			await this.openReview(moment().subtract(7, "days"));
+			return;
+		}
+		const thisWeek = this.repo.file(this.repo.weekPath(moment()));
+		if (thisWeek && moment().isoWeekday() === 7 && !this.repo.reviewDone(thisWeek)) {
+			await this.openReview();
+			return;
+		}
+		if (!thisWeek) {
 			await this.openWeek();
 			return;
 		}
@@ -63,6 +75,18 @@ export default class OnePercentDiary extends Plugin {
 		}
 		const file = await this.repo.openOrCreateWeek(cycle, date, goals);
 		await this.app.workspace.getLeaf(false).openFile(file);
+	}
+
+	async openReview(date = moment()): Promise<void> {
+		const cycle = this.repo.cycleAt(date);
+		const existing = this.repo.file(this.repo.weekPath(date));
+		if (!existing && !cycle) {
+			new Notice("Aucune semaine à revoir : pas de cycle à cette date.");
+			return;
+		}
+		const week = existing ?? (await this.repo.openOrCreateWeek(cycle as Cycle, date));
+		await this.repo.ensureReview(week);
+		await this.app.workspace.getLeaf(false).openFile(week);
 	}
 
 	async openCycle(): Promise<void> {
