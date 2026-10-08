@@ -4,6 +4,7 @@ import type OnePercentDiary from "../main";
 import type { Cycle } from "../repository";
 import { VISION_QUESTIONS } from "../texts";
 import { renderGuide } from "../ui/guide";
+import { renderScale } from "../ui/scale";
 
 interface GoalDraft {
 	file: TFile | null;
@@ -119,15 +120,7 @@ export class GoalsModal extends Modal {
 		const scale = el.createDiv({ cls: "opd-field" });
 		scale.createEl("label", { text: "Ligne de départ" });
 		scale.createEl("div", { cls: "opd-desc", text: "De 1 à 10, où en es-tu vraiment aujourd'hui ? Pas de bonne réponse, juste un point de départ honnête." });
-		const row = scale.createDiv({ cls: "opd-scale" });
-		for (let n = 1; n <= 10; n++) {
-			const b = row.createEl("button", { text: String(n), cls: d.evaluation === n ? "is-selected" : "" });
-			b.addEventListener("click", () => {
-				d.evaluation = n;
-				row.querySelectorAll("button").forEach((x) => x.removeClass("is-selected"));
-				b.addClass("is-selected");
-			});
-		}
+		renderScale(scale, d.evaluation, (n) => (d.evaluation = n));
 
 		if (i === 0) renderGuide(el, "banque", this.plugin);
 		this.field("Mes 1% possibles", "Un petit pas par ligne.", d.banque, (v) => (d.banque = v));

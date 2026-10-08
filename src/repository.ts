@@ -308,6 +308,23 @@ export class DiaryRepo {
 		});
 	}
 
+	async setEvaluation(goal: TFile, milestone: number, value: number): Promise<void> {
+		await this.app.fileManager.processFrontMatter(goal, (fm: Frontmatter) => {
+			fm[`evaluation_J${milestone}`] = value;
+		});
+	}
+
+	/**
+	 * Dernier jalon atteint dont le bilan n'est pas terminé (un objectif sans note).
+	 * Il reste proposé les jours suivants : un bilan manqué le jour J n'est pas perdu.
+	 */
+	pendingMilestone(cycle: Cycle, day: number): number | null {
+		const reached = this.milestones(cycle).filter((m) => m <= day);
+		const last = reached[reached.length - 1];
+		if (last === undefined) return null;
+		return this.goals(cycle).some((g) => g.evaluations[`J${last}`] === undefined) ? last : null;
+	}
+
 	/** Ajoute une idée à la réserve d'un objectif, sans doublon. */
 	async addToBank(goal: TFile, idea: string): Promise<void> {
 		const text = idea.trim();

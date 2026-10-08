@@ -42,6 +42,14 @@ export const GUIDES: Record<string, Guide> = {
 			"Un jour manqué n'efface rien : demain, tu reprends simplement là où tu t'es arrêté.",
 		],
 	},
+	bilan: {
+		title: "Le temps d'un bilan",
+		short: "Note où tu en es, puis relis ton pourquoi : est-ce que c'est assez ?",
+		body: [
+			"Tu as parcouru un bout du chemin. Pour chaque objectif, note où tu en es aujourd'hui, de 1 à 10, en pensant à ta mesure du succès.",
+			"Relis ensuite ta vision. Ce que tu as vécu ces dernières semaines la confirme-t-il ? Si ta réponse a changé, réécris-la : l'ancienne version est gardée.",
+		],
+	},
 	cycle: {
 		title: "Le chemin parcouru",
 		short: "On compte les pas faits, jamais les jours manqués.",
